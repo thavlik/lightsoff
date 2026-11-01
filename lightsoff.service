@@ -1,0 +1,27 @@
+[Unit]
+Description=Turn off all RGB lighting (OpenRGB)
+# At boot: default dependencies order this after sysinit.target: local
+# filesystems are mounted, kernel modules are loaded and udev has been
+# triggered. That is the earliest point the OpenRGB AppImage (needs FUSE and
+# /tmp) and the /dev/hidraw* and /dev/i2c-* devices are usable. It then runs in
+# parallel with the rest of boot, including the GDM login screen.
+#
+# After resume: each sleep target only becomes active once its
+# systemd-suspend/hibernate/... service returns, which is when the machine has
+# woken up. Being wanted by the sleep targets (see [Install]) and ordered after
+# them re-runs this service on every wake-up.
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+ConditionFileIsExecutable=/usr/local/bin/openrgb
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lightsoff
+# systemd sets no $HOME for root services, and OpenRGB keeps its config and
+# logs under $HOME/.config/OpenRGB. Give it a private home.
+StateDirectory=lightsoff
+Environment=HOME=/var/lib/lightsoff
+TimeoutStartSec=10min
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
